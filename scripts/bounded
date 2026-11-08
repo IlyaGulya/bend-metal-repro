@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ $(uname -s) != Linux ]]; then
+  printf 'Bounded execution requires Linux/systemd; use the selected SSH host.\n' >&2
+  exit 2
+fi
+if [[ $# == 0 ]]; then
+  printf 'Usage: scripts/bounded COMMAND [ARG ...]\n' >&2
+  exit 2
+fi
+exec systemd-run --user --wait --pipe --collect \
+  -p MemoryMax=4294967296 -p MemorySwapMax=0 -p TasksMax=64 \
+  -p CPUQuota=100% -p RuntimeMaxSec=300 -p OOMPolicy=stop \
+  -p "WorkingDirectory=$root" -p "Environment=PATH=$PATH" \
+  "$@"

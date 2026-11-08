@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+"""Compile remote-emitted Bend C on macOS without running local Bun.
+
+clang's integrated frontend, the actual linker, and Metal archive compilation
+are each admitted separately by the approved post-exec kernel supervisor.
+"""
+import os
+from pathlib import Path
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+
+if sys.platform != "darwin" or len(sys.argv) != 4 or sys.argv[1] not in ("--metal", "--cpu"):
+    raise SystemExit("Usage on macOS: scripts/build-macos --metal|--cpu GENERATED.c OUTPUT")
+metal = sys.argv[1] == "--metal"
+root = Path(__file__).resolve().parent.parent
+source = Path(sys.argv[2]).resolve(strict=True)
+output = Path(sys.argv[3]).resolve()
+output.parent.mkdir(parents=True, exist_ok=True)
+bounded = str(root / "scripts" / "bounded-macos")
+clang = subprocess.check_output(["xcrun", "--find", "clang"], text=True).strip()
+work = Path(tempfile.mkdtemp(prefix=".metal-build-", dir=output.parent))
+try:
+    obj = work / "program.o"
+    binary = work / "program"
+    subprocess.run([bounded, "--", clang, "-fintegrated-cc1", "-fno-crash-diagnostics",
+                    "-x", "objective-c", "-fobjc-arc", "-fmodules", "-DBEND_METAL=" + str(int(metal)),
+                    "-std=c11", "-O3", "-c", str(source), "-o", str(obj)], check=True)
+    # Ask the driver for metadata only; execute its actual native linker under
+    # a fresh post-exec cap instead of leaving a spawned linker unprotected.
+    plan = subprocess.run([clang, "-###", str(obj), "-fobjc-arc", "-o", str(binary)],
+                          text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    commands = [shlex.split(line) for line in plan.stderr.splitlines()
+                if line.lstrip().startswith('"')]
+    links = [command for command in commands if command and Path(command[0]).name == "ld"]
+    if len(links) != 1 or not os.path.isabs(links[0][0]):
+        raise RuntimeError("clang did not provide exactly one absolute native linker command")
+    subprocess.run([bounded, "--", *links[0]], check=True)
+    if metal:
+        subprocess.run([bounded, "--", str(binary), "+RTS", "--gpu-build", "-RTS"], check=True)
+        archive = Path(str(binary) + ".gpu")
+        if not archive.is_file():
+            raise RuntimeError("Metal archive was not produced; no CPU fallback artifact accepted")
+        os.replace(archive, str(output) + ".gpu")
+    os.replace(binary, output)
+    print(output)
+finally:
+    shutil.rmtree(work)

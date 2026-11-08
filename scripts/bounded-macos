@@ -1,0 +1,158 @@
+#!/usr/bin/python3
+"""Apply an approved per-process footprint cap after exec, before user code.
+
+macOS exec resets footprint limits. taskpolicy -s stops the final native image;
+NOTE_EXEC identifies it before this admin supervisor installs fatal active and
+inactive limits and resumes an unprivileged target. This is not a cgroup or a
+no-swap boundary and does not contain independent Metal compiler services.
+"""
+import argparse
+import ctypes
+import json
+import os
+import pwd
+import select
+import signal
+import sys
+import time
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--memory-mib", type=int, default=4096)
+parser.add_argument("--timeout-seconds", type=int, default=300)
+parser.add_argument("command", nargs=argparse.REMAINDER)
+args = parser.parse_args()
+command = args.command
+if command[:1] == ["--"]:
+    command = command[1:]
+if sys.platform != "darwin" or not 16 <= args.memory_mib <= 4096 or not 1 <= args.timeout_seconds <= 300 or not command or not os.path.isabs(command[0]):
+    parser.error("requires macOS, 16..4096 MiB, 1..300 seconds and an absolute native executable")
+if os.geteuid() != 0:
+    os.execv("/usr/bin/sudo", ["sudo", "-n", "/usr/bin/python3", "-I", os.path.realpath(__file__), *sys.argv[1:]])
+uid = int(os.environ.get("SUDO_UID", "0"))
+gid = int(os.environ.get("SUDO_GID", "0"))
+if uid == 0 or gid < 0:
+    parser.error("requires sudo from a non-root account; the target never runs as root")
+user = pwd.getpwuid(uid)
+target = os.path.realpath(command[0])
+lib = ctypes.CDLL(None, use_errno=True)
+control = lib.memorystatus_control
+control.argtypes = [ctypes.c_uint, ctypes.c_int, ctypes.c_uint, ctypes.c_void_p, ctypes.c_size_t]
+control.restype = ctypes.c_int
+pidpath = lib.proc_pidpath
+pidpath.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+pidpath.restype = ctypes.c_int
+
+class Limits(ctypes.Structure):
+    _fields_ = [("active", ctypes.c_int32), ("active_attr", ctypes.c_uint32),
+                ("inactive", ctypes.c_int32), ("inactive_attr", ctypes.c_uint32)]
+
+class Deadline(Exception):
+    pass
+
+class Cancelled(Exception):
+    pass
+
+def timeout(signum, frame):
+    raise Deadline()
+
+def cancelled(signum, frame):
+    raise Cancelled(signum)
+
+child = None
+reaped = False
+read_fd = write_fd = None
+events = None
+started = time.monotonic()
+exit_code = 2
+usage = None
+signal.signal(signal.SIGALRM, timeout)
+for stop_signal in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+    signal.signal(stop_signal, cancelled)
+signal.alarm(args.timeout_seconds)
+try:
+    read_fd, write_fd = os.pipe()
+    events = select.kqueue()
+    child = os.fork()
+    if child == 0:
+        try:
+            os.close(write_fd)
+            os.setsid()
+            os.setgroups([])
+            os.setgid(gid)
+            os.setuid(uid)
+            if os.getuid() != uid or os.geteuid() != uid:
+                os._exit(126)
+            os.environ.update(HOME=user.pw_dir, USER=user.pw_name, LOGNAME=user.pw_name,
+                              PATH="/usr/bin:/bin:/usr/sbin:/sbin")
+            os.environ.pop("BENDRTS", None)
+            os.read(read_fd, 1)
+            os.close(read_fd)
+            os.execv("/usr/sbin/taskpolicy", ["taskpolicy", "-s", *command])
+        except BaseException:
+            os._exit(127)
+    os.close(read_fd)
+    read_fd = None
+    change = select.kevent(child, filter=select.KQ_FILTER_PROC,
+                          flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
+                          fflags=select.KQ_NOTE_EXEC | select.KQ_NOTE_EXIT)
+    events.control([change], 0, 0)
+    os.write(write_fd, b"x")
+    os.close(write_fd)
+    write_fd = None
+    admitted = False
+    while not admitted:
+        for event in events.control(None, 1, args.timeout_seconds):
+            if event.fflags & select.KQ_NOTE_EXIT:
+                _, status, usage = os.wait4(child, 0)
+                reaped = True
+                raise RuntimeError("target exited before memory admission")
+            image = ctypes.create_string_buffer(4096)
+            if pidpath(child, image, len(image)) <= 0:
+                raise RuntimeError("cannot identify stopped target")
+            if os.path.realpath(os.fsdecode(image.value)) == target:
+                admitted = True
+    requested = Limits(args.memory_mib, 1, args.memory_mib, 1)
+    if control(7, child, 0, ctypes.byref(requested), ctypes.sizeof(requested)) != 0:
+        raise OSError(ctypes.get_errno(), "cannot apply fatal footprint limit")
+    actual = Limits()
+    if control(8, child, 0, ctypes.byref(actual), ctypes.sizeof(actual)) != 0 or (actual.active, actual.active_attr, actual.inactive, actual.inactive_attr) != (args.memory_mib, 1, args.memory_mib, 1):
+        raise RuntimeError("fatal footprint limit readback mismatch")
+    os.kill(child, signal.SIGCONT)
+    for event in events.control(None, 1, args.timeout_seconds):
+        if event.fflags & select.KQ_NOTE_EXEC:
+            raise RuntimeError("target exec would reset its memory cap")
+        if event.fflags & select.KQ_NOTE_EXIT:
+            _, status, usage = os.wait4(child, 0)
+            reaped = True
+            result = os.waitstatus_to_exitcode(status)
+            exit_code = result if result >= 0 else 128 - result
+    if not reaped:
+        raise Deadline()
+except Deadline:
+    exit_code = 124
+    print("bounded-macos: execution deadline exceeded", file=sys.stderr)
+except Cancelled as error:
+    exit_code = 128 + error.args[0]
+except BaseException as error:
+    exit_code = 2
+    print("bounded-macos: " + str(error), file=sys.stderr)
+finally:
+    signal.alarm(0)
+    if child and not reaped:
+        try:
+            os.killpg(child, signal.SIGKILL)
+        except ProcessLookupError:
+            try:
+                os.kill(child, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        _, _, usage = os.wait4(child, 0)
+    if events is not None:
+        events.close()
+    for fd in (read_fd, write_fd):
+        if fd is not None:
+            os.close(fd)
+    print("bounded-macos: " + json.dumps({"exit": exit_code,
+          "limitMiB": args.memory_mib, "elapsed": round(time.monotonic() - started, 3),
+          "peakRSSBytes": int(usage.ru_maxrss) if usage is not None else None}), file=sys.stderr)
+raise SystemExit(exit_code)

@@ -1,0 +1,31 @@
+--- a/comp.ts
++++ b/comp.ts
+@@ -4320,8 +4320,8 @@
+ // Work
+ // ====
+ 
+-// A host self-jump is a tail call: as a loop, clang hoists constants badly.
+-#if !DEVICE
++// Work self-jumps re-enter the device dispatcher or tail-call on the host.
++// Native spins above keep local loops; work re-entry reloads frame/arguments.
+ #undef  WL_SPIN
+ #undef  WL_SPUN
+ #undef  WL_AGAIN
+@@ -4329,6 +4329,7 @@
+ #define WL_SPUN
+ #define WL_AGAIN    WL_JMP
+ 
++#if !DEVICE
+ typedef Term (PRESERVE(preserve_none) *WlFn)(WL_SIG);
+ #define WL_X(F) WL_FN WL_##F(WL_SIG);
+ WL_TABLE WL_X(FID_ENTER)
+@@ -4346,7 +4347,8 @@
+ #if DEVICE
+   u32 fid   = FID_ENTER;
+   u32 wpoll = 0;
+-  WL_SPIN
++  for (;;) {
++  if (err_spun(e.mem, &wpoll)) { return 0; }
+   switch (fid) {
+ #else
+   return WL_FID_ENTER(WL_ALL);
