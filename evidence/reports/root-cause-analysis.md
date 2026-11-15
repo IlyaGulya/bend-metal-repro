@@ -207,3 +207,38 @@ called a fix. What the table does establish is that the fault is a property of t
 `[2593, 2609]`, which the pass map shows is `rfc_seal` and `spin_ir_functionHeight`. Skipping the tail of
 the pipeline leaves later functions unoptimized, so the probe changes more than one variable at a time.
 The bracket is recorded for completeness and is not used as a causal claim.
+
+## Robustness sweep: the shape decides, not luck
+
+Seven semantically neutral perturbations, each compiled at `-O3` and run on the GPU for all three inputs.
+Two base shapes: the untouched `be236f32` emitter output, and the same output with the reproducer's
+Work-redispatch change (`WL_SPIN`/`WL_SPUN` empty, `WL_AGAIN = WL_JMP`, one dispatch loop).
+
+| perturbation | untouched shape | redispatch shape |
+|---|---|---|
+| swap first two dispatch cases | fail | pass |
+| swap two middle cases | fail | pass |
+| move `FID_ir_eval` case first | fail | pass |
+| move `FID_ir_eval` case last | fail | pass |
+| add a dead `constant` table | fail | pass |
+| swap two late cases | fail | pass |
+| `scoped-poll` (the null edit: `wpoll` into the loop header) | **pass** | pass |
+
+Totals: untouched shape 1/7, redispatch shape 7/7.
+
+Reading:
+
+1. The untouched shape is not reliably wrong; it is reliably *unstable*. Six of seven perturbations
+   leave it broken, and the seventh — the exact null edit already reported in the issue — repairs it.
+   That matches the report that a semantically null edit flips the outcome.
+2. The redispatch shape produced correct results for every perturbation at the level where the
+   untouched shape fails. That is the property a fix needs, and it is the property the untouched
+   shape lacks.
+3. This is a robustness comparison, not a proof that the backend defect is gone: the same optimizer
+   can still miscompile other programs. It does show that the fault is a property of the emitted
+   device shape, and that this shape avoids it.
+
+Fix direction, therefore: stop emitting a per-segment `for(;;)` with `break` inside the 239-case
+dispatch `switch`; make a Work self-jump re-enter the dispatcher (the Work-section macros at
+`comp.ts:4320-4355`), which is a small, point-of-use edit of the kind the fork rules ask for. The
+ttok cap on `comp.ts` (currently 65 980/66 000) decides whether it lands there or moves to `bond/`.
