@@ -1,0 +1,20 @@
+{
+  "issue": "https://github.com/bendlang/bend/issues/2094",
+  "compiler_commit": "d18110b6d6e9a70bb8814b2a8d8db092e301e540",
+  "reproducer_commit": "ee1d7a858f54cdd7f182391c917ee41ca9f1c6d4",
+  "compiler_patches": [],
+  "hardware": "Apple M1 Max, 32 GPU cores, 64 GB RAM",
+  "macos": "26.6.2 (25G83)",
+  "metal": "Metal 4",
+  "clang": "Apple clang 21.0.0 (clang-2100.4.1.1)",
+  "bun": "1.4.4",
+  "guard": "/Users/ilyagulya/Projects/My/bond-lang/bond/guard.ts",
+  "metal_validation": "MTL_DEBUG_LAYER and MTL_SHADER_VALIDATION unset during build and runs",
+  "threads": 4,
+  "metal_heap": "512MB",
+  "cpu": {"passed": 3, "total": 3},
+  "metal_runs": {"passed": 45, "total": 45},
+  "expected_values": {"0": 2, "1": 1, "2": 3},
+  "metal_telemetry_every_run": {"backend": 1, "events": 3, "heap": 512},
+  "logs": ["build-d18110b6.log", "results-d18110b6.jsonl"]
+}

@@ -1,0 +1,6 @@
+INPUT=0
+{"backend":1,"events":3,"heap":512,"value":2}
+INPUT=1
+{"backend":1,"events":3,"heap":512,"value":1}
+INPUT=2
+{"backend":1,"events":3,"heap":512,"value":3}

@@ -1,0 +1,44 @@
+{
+  "hardware": "Apple M1 Max, 32 GPU cores, 64 GB RAM",
+  "macos": "26.6.2 (25G83)",
+  "bun": "1.4.4",
+  "clang": "Apple clang 21.0.0 (clang-2100.4.1.1)",
+  "reproducer_commit": "ee1d7a858f54cdd7f182391c917ee41ca9f1c6d4",
+  "patches": [],
+  "threads": 4,
+  "metal_heap": "512MB",
+  "metal_validation": "MTL_DEBUG_LAYER and MTL_SHADER_VALIDATION unset",
+  "commits": {
+    "be236f32": {
+      "results_log": "results-be236f32.jsonl",
+      "summary": {
+        "cpu": {
+          "passed": 3,
+          "total": 3
+        },
+        "metal": {
+          "passed": 0,
+          "total": 45
+        }
+      },
+      "metal_errors": {
+        "bend: a function the device does not hold": 24,
+        "bend: frontier drained without a result": 21
+      }
+    },
+    "d18110b6": {
+      "results_log": "results-d18110b6.jsonl",
+      "summary": {
+        "cpu": {
+          "passed": 3,
+          "total": 3
+        },
+        "metal": {
+          "passed": 45,
+          "total": 45
+        }
+      },
+      "metal_errors": {}
+    }
+  }
+}

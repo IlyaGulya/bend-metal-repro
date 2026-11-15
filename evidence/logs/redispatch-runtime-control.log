@@ -1,0 +1,6 @@
+{"mode": "cpu", "input": 0, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":2}", "stderr": "", "ok": true}
+{"mode": "cpu", "input": 1, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":1}", "stderr": "", "ok": true}
+{"mode": "cpu", "input": 2, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":3}", "stderr": "", "ok": true}
+{"mode": "metal", "input": 0, "exit": 0, "stdout": "{\"backend\":1,\"events\":3,\"heap\":512,\"value\":2}", "stderr": "", "ok": true}
+{"mode": "metal", "input": 1, "exit": 0, "stdout": "{\"backend\":1,\"events\":3,\"heap\":512,\"value\":1}", "stderr": "", "ok": true}
+{"mode": "metal", "input": 2, "exit": 0, "stdout": "{\"backend\":1,\"events\":3,\"heap\":512,\"value\":3}", "stderr": "", "ok": true}

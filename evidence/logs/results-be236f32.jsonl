@@ -1,0 +1,49 @@
+{"mode": "cpu", "input": 0, "iteration": 1, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":2}", "stderr": "", "ok": true}
+{"mode": "cpu", "input": 1, "iteration": 1, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":1}", "stderr": "", "ok": true}
+{"mode": "cpu", "input": 2, "iteration": 1, "exit": 0, "stdout": "{\"backend\":0,\"events\":0,\"heap\":8192,\"value\":3}", "stderr": "", "ok": true}
+{"mode": "metal", "input": 0, "iteration": 1, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 1, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 1, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 2, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 2, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 2, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 3, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 3, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 3, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 4, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 4, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 4, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 5, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 5, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 5, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 6, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 6, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 6, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 7, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 7, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 7, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 8, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 8, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 8, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 9, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 9, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 9, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 10, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 10, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 10, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 11, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 11, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 11, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 12, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 12, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 12, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 13, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 13, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 13, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 14, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 14, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 14, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 0, "iteration": 15, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 1, "iteration": 15, "exit": 1, "stdout": "", "stderr": "bend: a function the device does not hold", "ok": false}
+{"mode": "metal", "input": 2, "iteration": 15, "exit": 1, "stdout": "", "stderr": "bend: frontier drained without a result", "ok": false}
+{"summary": {"cpu": {"passed": 3, "total": 3}, "metal": {"passed": 0, "total": 45}}}
