@@ -1,0 +1,11 @@
+4000	fail	bend: a function the device does not hold
+2000	pass	BOUNDARY 1=0000000000000000 2=0000000000000000 3=0000000000000000 4=0000000000000000 5=000
+3000	fail	bend: a function the device does not hold
+4000	fail	bend: a function the device does not hold
+2000	pass	BOUNDARY 1=0000000000000000 2=0000000000000000 3=0000000000000000 4=0000000000000000 5=000
+3000	fail	bend: a function the device does not hold
+2500	pass	BOUNDARY 1=0000000000000000 2=0000000000000000 3=0000000000000000 4=0000000000000000 5=000
+2750	fail	bend: a function the device does not hold
+2625	fail	bend: a function the device does not hold
+2562	pass	BOUNDARY 1=0000000000000000 2=0000000000000000 3=0000000000000000 4=0000000000000000 5=000
+2593	unsupported	bend: Compilation failed due to an interrupted connection: XPC_ERROR_CONNECTION_INTERRUPTE

@@ -117,3 +117,93 @@ Two other discriminators were attempted and are excluded: `-mtranslator` is reje
 3. **Synthetic threshold kernel.** Generated MSL with 32 to 192 cases, each with a `for(;;)`/`break` inner loop inside a dispatch `switch`, and compiled through the offline toolchain. No `Max Unstruct ID` warning appears even at 192 cases, i.e. this simple shape does not build the same number of unstructured regions as Bend's dispatcher. A controlled sweep cannot be built with this template.
 
 What remains requires one of: an AGX instruction disassembler, symbolic debugging inside the stripped 105 MB plugin (attach/launch attempts hang), or Apple's own analysis. The evidence is sufficient to name the owning component and the constraint, and not sufficient to name the exact instruction or identifier.
+
+## Decisive result: the optimization level triggers it, not the region limit
+
+The same device source, compiled by the installed toolchain at three optimization levels, then run on the same GPU through the same host loader (`AIR_LIBRARY` = that metallib, so no runtime recompile of the source):
+
+| level | input 0 | input 1 | input 2 |
+|---|---|---|---|
+| `-O1` | 2 | 1 | 3 |
+| `-O2` | `a function the device does not hold` | `a function the device does not hold` | `memory fault (machine stack overflow?)` |
+| `-O3` | `a function the device does not hold` | `frontier drained without a result` | `frontier drained without a result` |
+
+`-O0` cannot be used as a control: the backend rejects it with
+`Encountered unlowered function call to air.load.device_coherent.i32.p1i32`, so the
+`coherent(device)` loads require the optimizer.
+
+Consequences:
+
+1. The defect is an optimization-dependent miscompile of the device program. `-O1`
+   is correct, `-O2` and `-O3` are wrong, with the same source and the same
+   pipeline settings.
+2. This explains the earlier observations in one mechanism: a semantically null MSL
+   edit flips the result; enabling `MTL_DEBUG_LAYER`/`MTL_SHADER_VALIDATION` makes the
+   unmodified binary pass (validation changes the shader build); and `d18110b6`
+   passes because an unrelated upstream refactor changed the IR that reaches the
+   optimizer.
+3. Region counts, measured by the same native pass on each level's AIR: `-O1` = 344,
+   `-O2` = 555, `-O3` = 555. So a correct build exists at 344, which is already above
+   the warning's 255 limit. The limit is therefore not a correctness boundary, and
+   the warning alone cannot be used to predict failure. Region count still differs
+   between the passing and failing levels, so it is not excluded as a contributing
+   factor, but it is not the trigger: the trigger is the optimization itself.
+   The `FID_ir_eval`-first reorder (`reorder-runtime.log`) did not change the outcome.
+4. Version status: upstream HEAD is `f0cf0a7c`, not `d18110b6` (11 commits later, 4 in
+   `comp.ts`). HEAD passes 15/15 on Metal (`head-runtime.log`) and still reports ID
+   548 (`head-offline.log`). The installed toolchain is 32023.922, while the runtime
+   compiler that produced the original failing archive is 32023.886; both fail.
+
+Next step this enables: bisect the `-O3` pipeline (`-mllvm -opt-bisect-limit`, since
+`xcrun metal` compiles this source offline) to name the transform, and re-test the
+known null edits at `-O3` offline. Each iteration is a compile of a few seconds plus a
+two-second run, so the search is now cheap.
+
+### Optimizer bisect (in progress)
+
+`-mllvm -opt-bisect-limit=N` at `-O3` on the same source, then the same runtime check for input 1. Each probe compiles in ~15 s and runs in ~2 s.
+
+Full log in `bisect-log.txt`; pass map in `pass-map.txt` (7744 execution slots: index, pass name, function).
+
+| limit | verdict |
+|---|---|
+| 2000 | correct |
+| 2500 | correct |
+| 2562 | correct |
+| 2625 | `a function the device does not hold` |
+| 2750 | `a function the device does not hold` |
+| 3000 | `a function the device does not hold` |
+| 4000 | `a function the device does not hold` |
+
+Interpretation, with its limit stated: the bracket `[2562, 2625]` falls, according to the
+pass map, on per-function loop passes for the small helpers `task_node` and `rfc_wrap`,
+while the failing edge lives in `work_loop`. A single pass on those helpers is not a
+plausible owner of this fault, so this bisect measures how much of the pipeline must
+run before the emitted program is wrong, not one culprit transform. The index signal is
+therefore coarse, and the exact pass is not yet named.
+
+The reliable facts from this section: correctness at `-O1`, failure at `-O2`/`-O3`, and a
+correct build at region count 344 (above the warning's 255).
+
+### Source shapes at the failing level
+
+Compiled offline at `-O3` (the level that fails for the untouched source), linked, and run through the same loader on the same GPU:
+
+| variant | input 0 | input 1 | input 2 |
+|---|---|---|---|
+| untouched `be236f32` | fail | fail | fail |
+| `scoped-poll` (the null edit: `wpoll` moved into the loop header) | 2 | 1 | 3 |
+| `redispatch` (the reproducer's workaround: Work re-enters the dispatcher instead of self-looping) | 2 | 1 | 3 |
+
+Both variants survive the failing optimization level. This is consistent with the issue's report that a
+semantically null edit flips the outcome, so a single passing build is not yet evidence of robustness:
+`scoped-poll` is exactly such a null edit, and `redispatch` needs a perturbation sweep before it can be
+called a fix. What the table does establish is that the fault is a property of the emitted shape under
+`-O2`/`-O3`, and that shapes exist which the same optimizer and the same backend compile correctly.
+
+### Why the index bisect does not name a pass
+
+`work_loop` is optimized at execution indices ~129 onward, while the bisect transition sits at
+`[2593, 2609]`, which the pass map shows is `rfc_seal` and `spin_ir_functionHeight`. Skipping the tail of
+the pipeline leaves later functions unoptimized, so the probe changes more than one variable at a time.
+The bracket is recorded for completeness and is not used as a causal claim.
