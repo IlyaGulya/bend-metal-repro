@@ -242,3 +242,37 @@ Fix direction, therefore: stop emitting a per-segment `for(;;)` with `break` ins
 dispatch `switch`; make a Work self-jump re-enter the dispatcher (the Work-section macros at
 `comp.ts:4320-4355`), which is a small, point-of-use edit of the kind the fork rules ask for. The
 ttok cap on `comp.ts` (currently 65 980/66 000) decides whether it lands there or moves to `bond/`.
+
+## Runtime-path validation of the fix
+
+The offline toolchain (32023.922) is **not** the runtime compiler (32023.886): the patched emitter's output
+fails in 922 at `-O2`/`-O3` (both math modes, MSL 3.2 and 4.0) while the same source builds and runs
+correctly through the runtime compiler. Offline pass/fail therefore cannot be used as the decision oracle;
+the runtime path (`--gpu-build` plus a real Metal run) is the one to test.
+
+Patch: the Work-section change only (`bend2/comp.ts`, `git diff --stat` = 6 insertions, 3 deletions):
+`WL_SPIN`/`WL_SPUN` empty, `WL_AGAIN = WL_JMP`, and the device dispatcher becomes
+`for (;;) { if (err_spun(e, &wpoll)) return 0; switch (fid) { ... } }`. A Work self-jump now re-enters the
+dispatcher instead of looping and breaking inside its own case.
+
+Measured on this machine, runtime path, three inputs each, no validation:
+
+| emitter | unperturbed | swap first two cases | move `FID_ir_eval` first |
+|---|---|---|---|
+| untouched (HEAD) | fails | fails | fails |
+| patched (HEAD + Work change) | 9/9 correct | 3/3 correct | 3/3 correct |
+
+Also patched: `swap-middle-two` 3/3 correct. So the patched shape is correct both unperturbed and under the
+same perturbations that break the untouched shape.
+
+Caveats, stated because they bound the claim:
+
+1. One reproducer and three perturbations. This is not the test suite and not the benchmark.
+2. Only the runtime path was used for this table; the offline toolchain's disagreement is documented above.
+3. Token-cap compliance is unverified: `ttok` is not installed here, so `gates/repo.ts` cannot run. The change
+   is 6+3 lines against `comp.ts`, which was at 65 980/66 000 before it. Per the fork rules this needs an
+   explicit decision on the cap.
+4. Performance effect of always re-entering the dispatcher is not measured.
+
+Status: the failing shape and a validated replacement are known. The change is written in the scratch worktree
+`bond-lang-issue-2094-head` and is not committed anywhere.
